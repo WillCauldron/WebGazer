@@ -110,6 +110,10 @@ TFFaceMesh.prototype.getEyePatches = async function(video, imageCanvas, width, h
 
   // Start building object to be returned
   var eyeObjs = {};
+  // GORILLA DEV
+  // Add in faceInViewConfidence for eyepatches
+  // TODO check that this still exists in facemesh
+  eyeObjs.faceInViewConfidence = predictions[0].faceInViewConfidence;
 
   var leftImageData = imageCanvas.getContext('2d').getImageData(leftOriginX, leftOriginY, leftWidth, leftHeight);
   eyeObjs.left = {

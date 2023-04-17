@@ -42,6 +42,13 @@ var xPast50 = new Array(50);
 var yPast50 = new Array(50);
 
 // loop parameters
+// GORILLA DEV
+// We need a global variable, which we'll set in .begin and .resume, to indicate if we want to prevent the requestAnimationFrame in loop from including predictions
+let overrideReqAnimPredictions = false;
+// GORILLA DEV
+// There's a possible edge case where if we call pause and then call resume within the same frame, we can end up with two reqAnimationFrame loops on the go
+// Add in a variable to contain the reqAnimatioNFrame identifier so we can clear it on pause
+let requestAnimationFrameIdentifier = null;
 var clockStart = performance.now();
 var latestEyeFeatures = null;
 var latestGazeData = null;
@@ -49,6 +56,9 @@ var paused = false;
 //registered callback for loop
 var nopCallback = function(data, time) {};
 var callback = nopCallback;
+// GORILLA DEV NOTE - Add InitFinishCallback
+// Note that we'll set this up so that
+var callbackInitFinish = function(videoStream, startTime) {};
 
 //Types that regression systems should handle
 //Describes the source of data so that regression systems may ignore or handle differently the various generating events
@@ -118,7 +128,10 @@ webgazer.computeValidationBoxSize = function() {
 /**
  * Checks if the pupils are in the position box on the video
  */
-function checkEyesInValidationBox() {
+// GORILLA DEV
+// return true or false to indicate if our eyes can be found in the bounding box
+// Add this to the src_webgazer global so it can be accessed from other files
+webgazer.checkEyesInValidationBox = function() {
 
   if (faceFeedbackBox != null && latestEyeFeatures) {
     var w = videoElement.videoWidth;
@@ -167,12 +180,18 @@ function checkEyesInValidationBox() {
     //the eyes are outside of the box the colour is red
     if (xPositions && yPositions){
       faceFeedbackBox.style.border = 'solid green';
+      // GORILLA DEV
+      return true;
     } else {
       faceFeedbackBox.style.border = 'solid red';
+      // GORILLA DEV
+      return false;
     }
   }
   else
     faceFeedbackBox.style.border = 'solid black';
+    // GORILLA DEV
+    return false;
 }
 
 /**
@@ -265,6 +284,10 @@ async function getPrediction(regModelIndex) {
 var smoothingVals = new util.DataWindow(4);
 var k = 0;
 
+// GORILLA DEV
+// Record the current frame time
+let currentFramePaintTime = null;
+
 async function loop() {
   if (!paused) {
 
@@ -276,68 +299,142 @@ async function loop() {
     // [20180729 JT] Why do we need to do this? clmTracker does this itself _already_, which is just duplicating the work.
     // Is it because other trackers need a canvas instead of an img/video element?
     paintCurrentFrame(videoElementCanvas, videoElementCanvas.width, videoElementCanvas.height);
+    currentFramePaintTime = performance.now();
 
-    // Get gaze prediction (ask clm to track; pass the data to the regressor; get back a prediction)
-    latestGazeData = getPrediction();
-    // Count time
-    var elapsedTime = performance.now() - clockStart;
+    // GORILLA DEV
+    // The video frame is what's used to determine the eye gaze
+    // We should still allow this to run within requestAnimationFrame, as the canvas can only actually be updated whenever the frame is redrawn anyway
+    // However, we should capture the time when this occurs, so that we can accurately say what frame (time) the eye gaze prediction is based on
+    // GORILLA DEV
+    if(!overrideReqAnimPredictions){
 
-    // Draw face overlay
-    if( webgazer.params.showFaceOverlay )
-    {
-      // Get tracker object
-      var tracker = webgazer.getTracker();
-      faceOverlay.getContext('2d').clearRect( 0, 0, videoElement.videoWidth, videoElement.videoHeight);
-      tracker.drawFaceOverlay(faceOverlay.getContext('2d'), tracker.getPositions());
-    }
+      // Get gaze prediction (ask clm to track; pass the data to the regressor; get back a prediction)
+      latestGazeData = getPrediction();
+      // Count time
+      var elapsedTime = performance.now() - clockStart;
 
-    // Feedback box
-    // Check that the eyes are inside of the validation box
-    if( webgazer.params.showFaceFeedbackBox )
-      checkEyesInValidationBox();
-
-    latestGazeData = await latestGazeData;
-
-    // [20200623 xk] callback to function passed into setGazeListener(fn)
-    callback(latestGazeData, elapsedTime);
-
-    if( latestGazeData ) {
-      // [20200608 XK] Smoothing across the most recent 4 predictions, do we need this with Kalman filter?
-      smoothingVals.push(latestGazeData);
-      var x = 0;
-      var y = 0;
-      var len = smoothingVals.length;
-      for (var d in smoothingVals.data) {
-        x += smoothingVals.get(d).x;
-        y += smoothingVals.get(d).y;
+      // Draw face overlay
+      if( webgazer.params.showFaceOverlay )
+      {
+        // Get tracker object
+        var tracker = webgazer.getTracker();
+        faceOverlay.getContext('2d').clearRect( 0, 0, videoElement.videoWidth, videoElement.videoHeight);
+        tracker.drawFaceOverlay(faceOverlay.getContext('2d'), tracker.getPositions());
       }
 
-      var pred = util.bound({'x':x/len, 'y':y/len});
+      // Feedback box
+      // Check that the eyes are inside of the validation box
+      if( webgazer.params.showFaceFeedbackBox )
+        // GORILLA DEV
+        // Now that checkEyesInValidationBox is in the global, make sure we call it from there
+        webgazer.checkEyesInValidationBox();
 
-      if (webgazer.params.storingPoints) {
-        drawCoordinates('blue',pred.x,pred.y); //draws the previous predictions
-        //store the position of the past fifty occuring tracker preditions
-        webgazer.storePoints(pred.x, pred.y, k);
-        k++;
-        if (k == 50) {
-          k = 0;
+      latestGazeData = await latestGazeData;
+
+      // [20200623 xk] callback to function passed into setGazeListener(fn)
+      callback(latestGazeData, elapsedTime);
+
+      if( latestGazeData ) {
+        // [20200608 XK] Smoothing across the most recent 4 predictions, do we need this with Kalman filter?
+        smoothingVals.push(latestGazeData);
+        var x = 0;
+        var y = 0;
+        var len = smoothingVals.length;
+        for (var d in smoothingVals.data) {
+          x += smoothingVals.get(d).x;
+          y += smoothingVals.get(d).y;
         }
+
+        var pred = util.bound({'x':x/len, 'y':y/len});
+
+        if (webgazer.params.storingPoints) {
+          drawCoordinates('blue',pred.x,pred.y); //draws the previous predictions
+          //store the position of the past fifty occuring tracker preditions
+          webgazer.storePoints(pred.x, pred.y, k);
+          k++;
+          if (k == 50) {
+            k = 0;
+          }
+        }
+        // GazeDot
+        if (webgazer.params.showGazeDot) {
+          gazeDot.style.display = 'block';
+        }
+        gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
+      } else {
+        gazeDot.style.display = 'none';
       }
-      // GazeDot
-      if (webgazer.params.showGazeDot) {
-        gazeDot.style.display = 'block';
-      }
-      gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
-    } else {
-      gazeDot.style.display = 'none';
     }
 
-    requestAnimationFrame(loop);
+    // GORILLA DEV
+    // Set the identifier from the animation frame loop
+    requestAnimationFrameIdentifier = requestAnimationFrame(loop);
   }
 }
 
 //is problematic to test
 //because latestEyeFeatures is not set in many cases
+
+// GORILLA DEV
+// this function is our manual call of what would be handled in loop if the override wasn't set
+webgazer.requestPrediction = async function (){
+  // Get gaze prediction (ask clm to track; pass the data to the regressor; get back a prediction)
+  // GORILLA DEV NOTE
+  // I've moved the actual await call here because I don't like the dynamic reassigning of variables
+  // THIS IS WHY WE HAVE TYPING, PEOPLE!!
+  latestGazeData = await getPrediction();
+  // Count time
+  // GORILLA DEV NOTE
+  // Now, the elapsed time will actually be the time between the frame paint time and clockStart
+  const elapsedTime = currentFramePaintTime - clockStart;
+
+  // Draw face overlay
+  if( webgazer.params.showFaceOverlay ){
+      // Get tracker object
+      var tracker = webgazer.getTracker();
+      faceOverlay.getContext('2d').clearRect( 0, 0, videoElement.videoWidth, videoElement.videoHeight);
+      tracker.drawFaceOverlay(faceOverlay.getContext('2d'), tracker.getPositions());
+  }
+
+  // Feedback box
+  // Check that the eyes are inside of the validation box
+  if( webgazer.params.showFaceFeedbackBox )
+  webgazer.checkEyesInValidationBox();
+
+  // [20200623 xk] callback to function passed into setGazeListener(fn)
+  callback(latestGazeData, elapsedTime);
+
+  if( latestGazeData ) {
+  // [20200608 XK] Smoothing across the most recent 4 predictions, do we need this with Kalman filter?
+  smoothingVals.push(latestGazeData);
+  var x = 0;
+  var y = 0;
+  var len = smoothingVals.length;
+  for (var d in smoothingVals.data) {
+      x += smoothingVals.get(d).x;
+      y += smoothingVals.get(d).y;
+  }
+
+  var pred = src_util.bound({'x':x/len, 'y':y/len});
+
+  if (webgazer.params.storingPoints) {
+      drawCoordinates('blue',pred.x,pred.y); //draws the previous predictions
+      //store the position of the past fifty occuring tracker preditions
+      webgazer.storePoints(pred.x, pred.y, src_k);
+      src_k++;
+      if (src_k == 50) {
+      src_k = 0;
+      }
+  }
+  // GazeDot
+  if (src_webgazer.params.showGazeDot) {
+      gazeDot.style.display = 'block';
+  }
+    gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
+  } else {
+    gazeDot.style.display = 'none';
+  }
+}
 
 /**
  * Records screen position data based on current pupil feature and passes it
@@ -581,6 +678,9 @@ async function init(stream) {
   clockStart = performance.now();
 
   await videoPreviewSetup;
+  // GORILLA DEV
+  // fire our completed initialisation callback
+  callbackInitFinish(videoStream, clockStart);
   await loop();
 }
 
@@ -616,17 +716,22 @@ function setUserMediaVariable(){
 }
 
 //PUBLIC FUNCTIONS - CONTROL
-
+// GORILLA DEV
+// Add in overridePredictions variable
 /**
  * Starts all state related to webgazer -> dataLoop, video collection, click listener
  * If starting fails, call `onFail` param function.
  * @param {Function} onFail - Callback to call in case it is impossible to find user camera
  * @returns {*}
  */
-webgazer.begin = function(onFail) {
+webgazer.begin = function(onFail, overridePredictions = false) {
   if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.chrome){
     alert("WebGazer works only over https. If you are doing local development, you need to run a local server.");
   }
+
+  // GORILLA DEV
+  // Set our global for overriding predictions
+  overrideReqAnimPredictions = overridePredictions;
 
   // Load model data stored in localforage.
   if (webgazer.params.saveDataAcrossSessions) {
@@ -675,20 +780,29 @@ webgazer.isReady = function() {
   return videoElementCanvas.width > 0;
 };
 
+// GORILLA DEV
+// Add in cancelling of active request animation frame loop
 /**
  * Stops collection of data and predictions
  * @returns {webgazer} this
  */
 webgazer.pause = function() {
   paused = true;
+  if(requestAnimationFrameIdentifier){
+    cancelAnimationFrame(requestAnimationFrameIdentifier);
+    requestAnimationFrameIdentifier = null;
+  }
   return webgazer;
 };
 
+// GORILLA DEV NOTE
+// Add in overridePredictions variable
 /**
  * Resumes collection of data and predictions if paused
  * @returns {webgazer} this
  */
-webgazer.resume = async function() {
+webgazer.resume = async function(overridePredictions = false) {
+  overrideReqAnimPredictions = overridePredictions;
   if (!paused) {
     return webgazer;
   }
@@ -1071,6 +1185,13 @@ webgazer.addRegression = function(name) {
   regs.push(newReg);
   return webgazer;
 };
+
+// GORILLA DEV
+// Add listener that fires when Webgazer has actually fully finished its initialisation 
+webgazer.setInitFinishListener = function(listener){
+  callbackInitFinish = listener;
+  return src_webgazer;
+}
 
 /**
  * Sets a callback to be executed on every gaze event (currently all time steps)
