@@ -718,13 +718,19 @@ function setUserMediaVariable(){
 //PUBLIC FUNCTIONS - CONTROL
 // GORILLA DEV
 // Add in overridePredictions variable
+// Add in own media stream
+/*
+  We have our own module for handling an instance of a media stream, which can then be shared by multiple components
+  i.e. video recording, eye tracking etc.
+  So, we need to use the media stream that that provides, rather than allow webgazer to initialise it's own stream
+*/
 /**
  * Starts all state related to webgazer -> dataLoop, video collection, click listener
  * If starting fails, call `onFail` param function.
  * @param {Function} onFail - Callback to call in case it is impossible to find user camera
  * @returns {*}
  */
-webgazer.begin = function(onFail, overridePredictions = false) {
+webgazer.begin = function(onFail, overridePredictions = false, mediaStream) {
   if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.chrome){
     alert("WebGazer works only over https. If you are doing local development, you need to run a local server.");
   }
@@ -755,7 +761,7 @@ webgazer.begin = function(onFail, overridePredictions = false) {
   return new Promise(async (resolve, reject) => {
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia( webgazer.params.camConstraints );
+      stream = mediaStream ? mediaStream : await navigator.mediaDevices.getUserMedia( webgazer.params.camConstraints );
       await init(stream);
       resolve(webgazer);
     } catch(err) {
