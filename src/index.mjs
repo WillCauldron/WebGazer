@@ -1196,7 +1196,7 @@ webgazer.addRegression = function(name) {
 // Add listener that fires when Webgazer has actually fully finished its initialisation 
 webgazer.setInitFinishListener = function(listener){
   callbackInitFinish = listener;
-  return src_webgazer;
+  return webgazer;
 }
 
 /**
