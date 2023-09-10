@@ -356,14 +356,12 @@ async function loop() {
             k = 0;
           }
         }
+        
         // GazeDot
-        if (webgazer.params.showGazeDot) {
-          gazeDot.style.display = 'block';
-        }
-        gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
-      } else {
-        gazeDot.style.display = 'none';
-      }
+        if (src_webgazer.params.showGazeDot) {
+            gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
+        } 
+      } 
     }
 
     // GORILLA DEV
@@ -405,35 +403,33 @@ webgazer.requestPrediction = async function (){
   callback(latestGazeData, elapsedTime);
 
   if( latestGazeData ) {
-  // [20200608 XK] Smoothing across the most recent 4 predictions, do we need this with Kalman filter?
-  smoothingVals.push(latestGazeData);
-  var x = 0;
-  var y = 0;
-  var len = smoothingVals.length;
-  for (var d in smoothingVals.data) {
-      x += smoothingVals.get(d).x;
-      y += smoothingVals.get(d).y;
-  }
+    // [20200608 XK] Smoothing across the most recent 4 predictions, do we need this with Kalman filter?
+    smoothingVals.push(latestGazeData);
+    var x = 0;
+    var y = 0;
+    var len = smoothingVals.length;
+    for (var d in smoothingVals.data) {
+        x += smoothingVals.get(d).x;
+        y += smoothingVals.get(d).y;
+    }
 
-  var pred = src_util.bound({'x':x/len, 'y':y/len});
+    var pred = util.bound({'x':x/len, 'y':y/len});
 
-  if (webgazer.params.storingPoints) {
-      drawCoordinates('blue',pred.x,pred.y); //draws the previous predictions
-      //store the position of the past fifty occuring tracker preditions
-      webgazer.storePoints(pred.x, pred.y, src_k);
-      src_k++;
-      if (src_k == 50) {
-      src_k = 0;
-      }
-  }
-  // GazeDot
-  if (src_webgazer.params.showGazeDot) {
-      gazeDot.style.display = 'block';
-  }
-    gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
-  } else {
-    gazeDot.style.display = 'none';
-  }
+    if (webgazer.params.storingPoints) {
+        drawCoordinates('blue',pred.x,pred.y); //draws the previous predictions
+        //store the position of the past fifty occuring tracker preditions
+        webgazer.storePoints(pred.x, pred.y, src_k);
+        src_k++;
+        if (src_k == 50) {
+        src_k = 0;
+        }
+    }
+
+    // GazeDot
+    if (src_webgazer.params.showGazeDot) {
+        gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
+    } 
+  } 
 }
 
 /**
