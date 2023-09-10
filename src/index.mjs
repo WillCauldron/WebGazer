@@ -130,7 +130,7 @@ webgazer.computeValidationBoxSize = function() {
  */
 // GORILLA DEV
 // return true or false to indicate if our eyes can be found in the bounding box
-// Add this to the src_webgazer global so it can be accessed from other files
+// Add this to the webgazer global so it can be accessed from other files
 webgazer.checkEyesInValidationBox = function() {
 
   if (faceFeedbackBox != null && latestEyeFeatures) {
@@ -358,7 +358,7 @@ async function loop() {
         }
         
         // GazeDot
-        if (src_webgazer.params.showGazeDot) {
+        if (webgazer.params.showGazeDot) {
             gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
         } 
       } 
@@ -426,7 +426,7 @@ webgazer.requestPrediction = async function (){
     }
 
     // GazeDot
-    if (src_webgazer.params.showGazeDot) {
+    if (webgazer.params.showGazeDot) {
         gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
     } 
   } 
