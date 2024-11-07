@@ -35,7 +35,7 @@ requestAnimationFrame (rAF) is a vital part of keeping visual-based timing withi
 However, the call to rAF can be blocking - requiring all of the functionality within the rAF loop to finish executing before the browser can begin processing the next frame.  If too much *stuff* is trying to happen within a rAF loop, the refresh rate of the device will slow down and the accuracy of stimuli/screen presentation timing will suffer as a result.
 The default Webgazer packages uses rAF to collect and process predictions from the stream, which is fine in a standalone application that won't be using rAF for anything else.  However, if rAF is being used elsewhere, the additional load on the loop quickly reduces timing accuracy.
 
-We noticed this, along with the javascript behavioural experiments packages JsPSych, in March/April 2021. JsPsych saw the same issues that we did in our own webgazer component: (https://github.com/jspsych/jsPsych/issues/1700)[Inaccurate trial timing with webgazer extension] and ultimately chose to fork the Webgazer repository to implement a fix (https://github.com/jspsych/jsPsych/issues/1671)[6.3.1 Release Notes].
+We noticed this, along with the javascript behavioural experiments packages JsPSych, in March/April 2021. JsPsych saw the same issues that we did in our own webgazer component: [Inaccurate trial timing with webgazer extension](https://github.com/jspsych/jsPsych/issues/1700) and ultimately chose to fork the Webgazer repository to implement a fix [6.3.1 Release Notes](https://github.com/jspsych/jsPsych/issues/1671).
 While at that time we didn't fork the Webgazer repo, we did make alterations to the base webgazer.js file (which can still be viewed/reviewed through the browser developer console).
 
 Within 
