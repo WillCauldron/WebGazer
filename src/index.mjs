@@ -57,7 +57,7 @@ var paused = false;
 var nopCallback = function(data, time) {};
 var callback = nopCallback;
 // GORILLA DEV NOTE - Add InitFinishCallback
-// Note that we'll set this up so that
+// Note that we'll set this up so that so it at least has a callable default (which won't do anything)
 var callbackInitFinish = function(videoStream, startTime) {};
 
 //Types that regression systems should handle
