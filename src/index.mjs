@@ -667,7 +667,10 @@ async function init(stream) {
     videoElement.addEventListener('loadeddata', setupPreviewVideo);
   });
 
-  addMouseEventListeners();
+  // GORILLA DEV NOTE
+  // As we don't link the mouse movements to the gaze events in calibration, the mouse event listeners can be disruptive
+  // NB a better way of doing this would be to call the inbuild remove function from webgazer - this is just a quick fix
+  // addMouseEventListeners();
 
   //BEGIN CALLBACK LOOP
   paused = false;
