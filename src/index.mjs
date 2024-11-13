@@ -879,20 +879,19 @@ webgazer.showVideoPreview = function(val) {
   return webgazer;
 }
 
-/**
- * hides a video element (videoElement or videoContainerElement)
- * uses display = 'none' for all browsers except Safari, which uses opacity = '1'
+/** GORILLA DEV NOTE
+ * Previously, this used display display = 'none' for all browsers except Safari, which uses opacity = '1'
  * because Safari optimizes out video element if display = 'none'
+ * However, Firefox also optimises out the video element is display is set to none
+ * Firefox and Safari are actually acting in line with the official specification for how this should work in the browser
+ * Chrome is in fact the odd one out here
+ * So, for future robustness, always use the opacity style of hiding
  * @param {Object} element
  * @return {null}
  */
 function hideVideoElement(val) {
-  if (navigator.vendor && navigator.vendor.indexOf('Apple') > -1) {
-    val.style.opacity = webgazer.params.showVideo ? '1': '0';
-    val.style.display = 'block';
-  } else {
-    val.style.display = webgazer.params.showVideo ? 'block' : 'none';
-  }
+  val.style.opacity = webgazer.params.showVideo ? '1': '0';
+  val.style.display = 'block';
 }
 
 /**
