@@ -178,18 +178,20 @@ webgazer.checkEyesInValidationBox = function() {
     //if the x and y values for both the left and right eye are within
     //the validation box then the box border turns green, otherwise if
     //the eyes are outside of the box the colour is red
+    // GORILLA DEV
+    // We've amended the colouring and styles here to be more color-blind friendly
     if (xPositions && yPositions){
-      faceFeedbackBox.style.border = 'solid green';
+      faceFeedbackBox.style.border = 'solid cornflowerblue';
       // GORILLA DEV
       return true;
     } else {
-      faceFeedbackBox.style.border = 'solid red';
+      faceFeedbackBox.style.border = 'dashed red';
       // GORILLA DEV
       return false;
     }
   }
   else
-    faceFeedbackBox.style.border = 'solid black';
+    faceFeedbackBox.style.border = 'dashed black';
     // GORILLA DEV
     return false;
 }
@@ -589,6 +591,9 @@ async function init(stream) {
   videoElement.id = webgazer.params.videoElementId;
   videoElement.srcObject = stream;
   videoElement.autoplay = true;
+  // GORILLA DEV
+  // Make sure the video element is muted to accomodate streams that have an audio stream in
+  videoElement.muted = true;
   videoElement.style.position = 'absolute';
   // We set these to stop the video appearing too large when it is added for the very first time
   videoElement.style.width = webgazer.params.videoViewerWidth + 'px';
@@ -627,7 +632,9 @@ async function init(stream) {
   faceFeedbackBox = document.createElement('canvas');
   faceFeedbackBox.id = webgazer.params.faceFeedbackBoxId;
   faceFeedbackBox.style.display = webgazer.params.showFaceFeedbackBox ? 'block' : 'none';
-  faceFeedbackBox.style.border = 'solid';
+  // GORILLA DEV
+  // Amended to be inline with our improved styling for colour-blind usabilities
+  faceFeedbackBox.style.border = 'dashed';
   faceFeedbackBox.style.position = 'absolute';
 
   // Gaze dot

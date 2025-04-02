@@ -70,3 +70,11 @@ and a corresponding subscribe function
 webgazer.setInitFinishListener
 ```
 which is called when the initial, awaitable stages of webgazers begin function have finished. On initial task load, we can then wait until webgazer has finished setting up the basics of what it needs, before Gorilla progresses further.
+
+### Improvements to usability for color-blind users
+
+We amended the face feedback box to be more friendly to color-blind users.  As well as altering the colour scheme to one that should be more supportive of the most common forms of colours blindness, we have also used a visual change to the border type (from dashed to solid) to support those with more complete colour blindness.
+
+### Muted the video element
+
+We explicitly muted the video element.  This should provide better support for autoplaying of the video element but also support scenarios where a camera stream includes an audio feed (for use with an audio recording component).  This prevents the audio stream from playing back through the hidden video element.
